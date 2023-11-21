@@ -60,7 +60,8 @@ namespace EOE日程抓取加链接
         private get_schdule gs;
         public Bot_start(get_schdule gs)
         {
-            this.bot = new TelegramBotClient("bot_token");
+            this.bot = new TelegramBotClient("6855135700:AAGfOFMePaRRQe7MjkXh11Nt2NgqJciHGu8");
+            bot.Timeout = TimeSpan.FromSeconds(10);
             this.gs = gs;
         }
         public async void run()
@@ -131,10 +132,10 @@ namespace EOE日程抓取加链接
            DateTime now_time=DateTime.Now;
           
            // Console.WriteLine(message_time.ToString());
-          // Console.WriteLine(now_time.ToString());
+            //Console.WriteLine(now_time.ToString());
             if ((now_time.AddHours(-8) - message_time).TotalMinutes > 5)
             {
-            Console.Write(message_time.ToString("oldmessage"));
+            //Console.Write(message_time.ToString("过期信息，不处理"));
             }
             else
             {
