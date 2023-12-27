@@ -22,8 +22,10 @@ namespace EOE日程抓取加链接
        public async void sb()
         {
             Console.WriteLine("Hello, World!");
-            get_schdule gs = new get_schdule();
-            Bot_start bt = new Bot_start(gs);
+            get_schdule gs = new get_schdule($"https://rss-hub-three.vercel.app/bilibili/user/dynamic/2018113152", "schdule.xml");
+            get_schdule binary_start = new get_schdule($"https://rss-hub-three.vercel.app/bilibili/user/dynamic/3546383999044476", "bs_schdule.xml");
+            get_schdule wanzi = new get_schdule($"https://rss-hub-three.vercel.app/bilibili/user/dynamic/1129115529", "wanzi_schdule.xml");
+            Bot_start bt = new Bot_start(gs,binary_start,wanzi);
             bt.run();
             while (true) 
             {
@@ -31,6 +33,8 @@ namespace EOE日程抓取加链接
                 int i = 0;
                 try { 
                     await gs.get_new_dongtai();
+                    await binary_start.get_new_dongtai();
+                    await wanzi.get_new_dongtai();
                     Console.WriteLine("更新成功");
                 }
                 catch 
@@ -58,11 +62,16 @@ namespace EOE日程抓取加链接
 
        
         private get_schdule gs;
-        public Bot_start(get_schdule gs)
+        private get_schdule binary_star;
+        private get_schdule wanzi;
+        public Bot_start(get_schdule gs, get_schdule binary_star, get_schdule wanzi)
         {
-            this.bot = new TelegramBotClient("6855135700:AAGfOFMePaRRQe7MjkXh11Nt2NgqJciHGu8");
+            //this.bot = new TelegramBotClient("..");//
+            this.bot = new TelegramBotClient("..");//text
             bot.Timeout = TimeSpan.FromSeconds(10);
             this.gs = gs;
+            this.binary_star = binary_star;
+            this.wanzi = wanzi;
         }
         public async void run()
         {
@@ -143,20 +152,33 @@ namespace EOE日程抓取加链接
 
                 body = get_body_info(m);
                 Console.WriteLine("开始处理1");
-                if (Contain_order(body))
+                int result =(int)Contain_order(body);
+                if (result==(int)tuan.eoe)
                 {
-
-
-                    Console.WriteLine("开始处理2");
-
-
+                    Console.WriteLine("开始处理eoe");
                     await Sendmessage(body, bot);
                 }
-
-
+                else if(result == (int)tuan.wanzi) 
+                {
+                    Console.WriteLine("开始处理wanzi");
+                    body.schdule = wanzi.get_exit_Schdule();
+                    await Sendmessage(body, bot);
+                }
+                else if(result==(int)tuan.bstar) 
+                {
+                    Console.WriteLine("开始处理bstar");
+                    body.schdule = binary_star.get_exit_Schdule();
+                    await Sendmessage(body, bot);
+                }
+                
             }
 
         }
+
+        
+
+   
+
         //获取发送者id,发送文本
         private process_body get_body_info(Message m)
         {
@@ -164,57 +186,60 @@ namespace EOE日程抓取加链接
             process_body body;
             body.m = m;
             body.received_text = m.Text;
-            body.schdule = gs.get_exit_Schdule();
-                  
+            body.schdule = body.schdule = gs.get_exit_Schdule();
             return body;          
         }
         //发送信息
         public async Task Sendmessage(process_body body,TelegramBotClient bot)            
         {
+            int count = 0;
             tryagain:
             try {
                 Console.WriteLine("开始发送");
-
+                string url = body.schdule.photo_url;
                 await
-                    bot.SendTextMessageAsync(
+                    bot.SendPhotoAsync(
                         chatId:body.m.Chat.Id,
-                        text:body.schdule.description,
+                        photo:InputFile.FromUri(url), //+$"&random={60 + count}"
+                        caption:body.schdule.description,
                         replyToMessageId: body.m.MessageId,
                         disableNotification: true,
                         parseMode: ParseMode.Html);
-                   /* bot.SendPhotoAsync(
-                chatId: body.id,
-                photo: body.schdule.image_url),
-                caption: body.schdule.description,
-                replyToMessageId:body.messageid,
-                disableNotification: true,
-                parseMode: ParseMode.Html) ;*/
-           
+
                 Console.WriteLine("发送成功"); 
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex) { 
+                count++;
                 Console.WriteLine("发送失败");
                 Console.WriteLine($"Telegram API request failed: {ex.Message}");
-
-                
-                goto tryagain;
+                if (count < 5)
+                {
+                    goto tryagain; }
+                    
+                else
+                    Console.WriteLine("停止尝试");
             }
             
             
         }
         //检测发送文本是否包含命令
-        private bool Contain_order(process_body body)
+        private tuan Contain_order(process_body body)
         {
             if (body.received_text == null)
             {
                 Console.WriteLine("文本为空");
-                return false;
+                return tuan.not;
             }
-            else if(body.received_text.Equals("日程") | body.received_text.Equals("/日程")) 
+            else if (body.received_text.Equals("日程") | body.received_text.Equals("/日程"))
             {
                 Console.WriteLine("接受到指令");
-                return true;  }
-           return false;
+                return tuan.eoe;
+            }
+            else if (body.received_text.Equals("丸子日程"))
+                return tuan.wanzi;
+            else if (body.received_text.Equals("bs日程"))
+                return tuan.bstar;
+           return tuan.not;
             
             
         }

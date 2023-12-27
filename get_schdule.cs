@@ -20,12 +20,14 @@ public class get_schdule
 {
     Schdule tem_schdule;
 	string get_schdule_url;
+    string local_schdule_url;
 	HttpClient httpClient;
     
-	public get_schdule() 
+	public get_schdule(string get_schdule_url,string local_schdule_url) 
 	{
-		get_schdule_url= $"https://rss-hub-three.vercel.app/bilibili/user/dynamic/2018113152";
-        httpClient = new HttpClient();
+        this.get_schdule_url = get_schdule_url;// 
+        this.local_schdule_url=local_schdule_url; 
+		httpClient= new HttpClient();
     }
 	
     public Schdule get_exit_Schdule()
@@ -59,11 +61,12 @@ public class get_schdule
             foreach (XmlNode item_xnod in root)
             {
                 string text_describe = item_xnod.SelectSingleNode("description").InnerText;
-                if (text_describe.Contains("直播安排"))
+                if (text_describe.Contains("直播安排") | text_describe.Contains("周表")| text_describe.Contains("排班表"))
                 {
-                    tem_schdule.description = remove_image(text_describe);
 
+                    tem_schdule.description = remove_image(text_describe);
                     tem_schdule.pubDate = item_xnod.SelectSingleNode("pubDate").InnerText;
+                    tem_schdule.photo_url = get_photo_url(text_describe);
                     if (not_have_exit(tem_schdule))
                     {
                         Console.WriteLine("更新日程");
@@ -82,6 +85,29 @@ public class get_schdule
 
 		
 	}
+
+   public string get_photo_url(string text_describe)
+    {
+        string pattern= @"(https?://[^\s]+.(png|jpg))";
+
+        Regex regex = new Regex(pattern);
+        Match match = regex.Match(text_describe);
+        if (!match.Success)
+        {
+            Console.WriteLine("tiqutupian shibai");
+            return "";
+        }
+        else
+        {
+            Console.WriteLine(match.Groups[1].Value);
+                      return match.Groups[1].Value;
+
+        }
+
+
+
+    }
+
     //移除imageurl，并替换《br》为换行符
     private string remove_image( string s)
     {
@@ -156,12 +182,13 @@ public class get_schdule
     private Schdule excel_read()
     {
 		Console.WriteLine("开始读取");
-		XDocument doc = XDocument.Load("schdule.xml");
+		XDocument doc = XDocument.Load(local_schdule_url);
 		XElement item_element = doc.Root;
-		Schdule s = new Schdule
-		{
-			description = item_element.Element("description").Value,
-			pubDate= item_element.Element("pubDate").Value,
+        Schdule s = new Schdule
+        {
+            description = item_element.Element("description").Value,
+            pubDate = item_element.Element("pubDate").Value,
+            photo_url = item_element.Element("photo_url").Value
         };
         DateTime now_time =DateTime.Now;
         string date = now_time.ToString("MM-dd HH:mm");
@@ -174,7 +201,7 @@ public class get_schdule
     private void excel_save(Schdule schdule)
     {
 		XmlSerializer serializer=new XmlSerializer(typeof(Schdule));
-        using (FileStream fileStream = new FileStream("schdule.xml", FileMode.Create))
+        using (FileStream fileStream = new FileStream(local_schdule_url, FileMode.Create))
         {
             serializer.Serialize(fileStream, schdule);
             Console.WriteLine("XML data has been written to the file.");

@@ -7,15 +7,24 @@ using Telegram.Bot.Types;
 ///
 
 public struct Schdule
-#nullable enable
 {
 
     public string description { get; set; }
     public string pubDate { get; set; }
+    public string photo_url { get; set; }
 }
+
 public struct process_body
 {
     public Message m;
     public string received_text;
     public Schdule schdule;
+
+}
+public enum tuan
+{ 
+    not,
+    eoe,
+    wanzi,
+    bstar
 }
